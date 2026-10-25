@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05040a">
+<title>妖怪拚台</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "playcanvas": "./vendor/playcanvas/playcanvas.mjs",
+  "spz-js": "./vendor/spz-js/index.js",
+  "@viggle/splat-engine": "./vendor/splat-engine/index.js"
+} }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" hidden>
+  <div class="side left">
+    <div class="portrait" id="pt0"></div>
+    <div class="bars">
+      <div class="name" id="name0">虎姑婆</div>
+      <div class="hp"><i id="hp0"></i><b id="hpLag0"></b></div>
+      <div class="guard"><i id="g0"></i></div>
+      <div class="bench" id="bench0"></div>
+    </div>
+  </div>
+  <div id="timer">60</div>
+  <div class="side right">
+    <div class="bars">
+      <div class="name" id="name1">九尾狐</div>
+      <div class="hp"><i id="hp1"></i><b id="hpLag1"></b></div>
+      <div class="guard"><i id="g1"></i></div>
+      <div class="bench" id="bench1"></div>
+    </div>
+    <div class="portrait" id="pt1"></div>
+  </div>
+  <div class="bottom left">
+    <div class="talisman" id="tal0"><span>護身符</span><em id="talCd0"></em></div>
+    <div class="meter"><i id="m0"></i><small id="mLabel0">靈力 0%</small></div>
+  </div>
+  <div class="bottom right">
+    <div class="meter"><i id="m1"></i><small id="mLabel1">靈力 0%</small></div>
+    <div class="talisman jp" id="tal1"><span>式符</span><em id="talCd1"></em></div>
+  </div>
+</div>
+
+<div class="combo left" id="combo0"></div><div class="combo right" id="combo1"></div>
+<div id="snow"></div>
+<div id="tags"><span class="tag" id="tag0"></span><span class="tag" id="tag1"></span></div>
+<div id="callout"></div>
+<div id="banner"></div>
+<div id="subtitle"></div>
+<div id="dim"></div>
+<div id="fog"></div>
+<div id="flash"></div>
+<div id="debug" hidden></div>
+<div id="tip"></div>
+
+<!-- 手機觸控按鈕：左手移動／格擋／護身符／換將，右手出招 -->
+<div id="touch">
+  <button data-key="KeyA" class="t-left" aria-label="往左">◀</button>
+  <button data-key="KeyD" class="t-right" aria-label="往右">▶</button>
+  <button data-key="KeyL" class="t-block">擋</button>
+  <button data-key="Digit1" class="t-tal" id="tbTal">符</button>
+  <button data-key="Tab" class="t-swap" id="tbSwap">換</button>
+  <button data-key="KeyJ" class="t-light">爪</button>
+  <button data-key="KeyK" class="t-heavy">重</button>
+  <button data-key="KeyO" class="t-kick">踢</button>
+  <button data-key="KeyI" class="t-jump">跳</button>
+  <button data-key="Space" class="t-dodge">閃</button>
+  <button data-key="KeyU" class="t-spec" id="tbSpec">特技</button>
+  <button data-key="KeyP" class="t-ult" id="tbUlt">奧義</button>
+</div>
+<button id="pauseBtn" data-ui="pause" aria-label="暫停">❚❚</button>
+<div id="endMenu" class="menu-row end-menu" hidden>
+  <button class="btn primary" data-ui="again">再拚一場 <kbd class="kb-only">R</kbd></button>
+  <button class="btn" data-ui="select">回召喚陣 <kbd class="kb-only">Enter</kbd></button>
+</div>
+
+<section id="title">
+  <div class="title-shell">
+    <small>台灣妖怪 vs 日本式神</small>
+    <h1>妖怪拚台</h1>
+    <p class="loading" id="loading">素材載入中…</p>
+    <p class="start" id="startHint" hidden><span class="kb-only">按 <kbd>Enter</kbd> 進入召喚陣</span><span class="touch-only">點「開始」進入召喚陣</span></p>
+    <div class="menu-row" id="titleMenu" hidden>
+      <button class="btn primary" data-ui="start">開始</button>
+      <button class="btn" data-ui="help">操作說明 <kbd class="kb-only">H</kbd></button>
+      <button class="btn" data-ui="settings">設定</button>
+      <button class="btn fs" data-ui="fullscreen">全螢幕</button>
+    </div>
+    <div class="keys kb-only">
+      <span><kbd>A</kbd><kbd>D</kbd> 前後移動</span>
+      <span><kbd>J</kbd> 爪擊　<kbd>K</kbd> 重擊　<kbd>O</kbd> 迴旋踢</span>
+      <span><kbd>L</kbd> 格擋（按住）　<kbd>空白</kbd> 翻滾閃避　<kbd>I</kbd> 跳</span>
+      <span><kbd>U</kbd> 特技　<kbd>P</kbd> 奧義（靈力滿）　<kbd>1</kbd> 護身符　<kbd>Tab</kbd> 換將</span>
+      <span><kbd>M</kbd> 靜音　<kbd>Esc</kbd> 暫停　<kbd>R</kbd> 重來</span>
+      <span class="dbg"><kbd>F2</kbd> 判定資訊　<kbd>T</kbd> 慢動作　<kbd>V</kbd> 自由鏡頭</span>
+    </div>
+  </div>
+</section>
+
+<section id="select" hidden>
+  <div class="select-shell">
+    <small>召喚陣 ・ 選擇你的陣營與先發</small>
+    <div class="sides">
+      <div class="col" id="col0"></div>
+      <div class="vs">拚</div>
+      <div class="col" id="col1"></div>
+    </div>
+    <div class="stages" id="stages"></div>
+    <div class="menu-row"><button class="btn primary" data-ui="go">開演！</button><button class="btn" data-ui="help">操作說明</button></div>
+    <p class="hint kb-only"><kbd>A</kbd><kbd>D</kbd> 換陣營　<kbd>W</kbd><kbd>S</kbd> 換先發　<kbd>Q</kbd><kbd>E</kbd> 換擂台　<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 電腦難度　<kbd>Enter</kbd> 開演　<kbd>H</kbd> 操作說明（也可以直接點選）</p>
+  </div>
+</section>
+
+<section id="pause" class="panel" hidden>
+  <div class="panel-box">
+    <h2>暫停</h2>
+    <div class="menu">
+      <button data-ui="resume">繼續 <kbd class="kb-only">Esc</kbd></button>
+      <button data-ui="restart">重新開始</button>
+      <button data-ui="select">回召喚陣</button>
+      <button data-ui="settings">聲音與觸控設定</button>
+      <button data-ui="help">操作說明</button>
+      <button data-ui="fullscreen" class="fs">全螢幕</button>
+    </div>
+  </div>
+</section>
+
+<section id="settings" class="panel" hidden>
+  <div class="panel-box">
+    <h2>設定</h2>
+    <div class="set-rows">
+      <label><span>配樂</span><input type="range" id="volMusic" min="0" max="100" step="5"><output id="volMusicV"></output></label>
+      <label><span>音效</span><input type="range" id="volSfx" min="0" max="100" step="5"><output id="volSfxV"></output></label>
+      <label><span>配音</span><input type="range" id="volVoice" min="0" max="100" step="5"><output id="volVoiceV"></output></label>
+    </div>
+    <div class="menu">
+      <button data-ui="mute" id="optMute">靜音：關</button>
+      <button data-ui="touchMode" id="optTouch">觸控按鈕：自動</button>
+      <button data-ui="resetTips">重新顯示新手提示</button>
+      <button data-ui="back">返回 <kbd class="kb-only">Esc</kbd></button>
+    </div>
+    <p class="note">設定會記在這台裝置的瀏覽器裡。</p>
+  </div>
+</section>
+
+<section id="help" class="panel" hidden>
+  <div class="panel-box wide">
+    <h2>操作說明</h2>
+    <div class="help-grid">
+      <div class="rules">
+        <h3>怎麼玩</h3>
+        <ul>
+          <li><b>3 對 3</b>：雙方各有 3 隻妖怪，倒下一隻就自動召喚下一隻，把對方 3 隻全部打倒就贏。</li>
+          <li><b>99 秒</b>時間到，比雙方剩下的血量總和。</li>
+          <li><b>護盾</b>（血條下的藍色細條）：格擋會消耗，歸零就「破防」，暈 1.2 秒；不格擋時會慢慢回復。</li>
+          <li><b>靈力</b>：打中對手或被打中都會累積，集滿就能放<b>奧義</b>。</li>
+          <li><b>護身符</b>：2 秒內不會受傷，用完要等 15 秒。</li>
+          <li><b>換將</b>：換下一隻還活著的隊友上場，換完 3 秒內不能再換。</li>
+          <li><b>連段</b>：連續打中傷害會遞減，第 5 下一定把對手擊倒。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>按鍵</h3>
+        <table>
+          <tr><th>動作</th><th>鍵盤</th><th>手機</th></tr>
+          <tr><td>移動</td><td><kbd>A</kbd><kbd>D</kbd></td><td>◀ ▶</td></tr>
+          <tr><td>爪擊（快）</td><td><kbd>J</kbd></td><td>爪</td></tr>
+          <tr><td>重擊（慢、會擊倒）</td><td><kbd>K</kbd></td><td>重</td></tr>
+          <tr><td>迴旋踢</td><td><kbd>O</kbd></td><td>踢</td></tr>
+          <tr><td>格擋（按住）</td><td><kbd>L</kbd></td><td>擋</td></tr>
+          <tr><td>翻滾閃避</td><td><kbd>空白</kbd></td><td>閃</td></tr>
+          <tr><td>跳</td><td><kbd>I</kbd></td><td>跳</td></tr>
+          <tr><td>特技（每隻不同）</td><td><kbd>U</kbd></td><td>特技</td></tr>
+          <tr><td>奧義（靈力滿）</td><td><kbd>P</kbd></td><td>奧義</td></tr>
+          <tr><td>護身符</td><td><kbd>1</kbd></td><td>符</td></tr>
+          <tr><td>換將</td><td><kbd>Tab</kbd></td><td>換</td></tr>
+          <tr><td>暫停</td><td><kbd>Esc</kbd></td><td>❚❚</td></tr>
+          <tr><td>靜音</td><td><kbd>M</kbd></td><td>設定裡</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="menu-row"><button class="btn primary" data-ui="back">知道了</button></div>
+  </div>
+</section>
+
+<div id="rotate"><div><b>↻</b><p>請把手機轉成橫向來玩</p></div></div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
