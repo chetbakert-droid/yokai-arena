@@ -269,3 +269,7 @@ body.touch .end-menu { top: 64%; }
   #touch .t-jump { bottom: 140px; width: 50px; height: 50px; }
   #touch .t-dodge, #touch .t-spec { width: 50px; height: 50px; }
 }
+
+#rotate .btn { margin-top: 6px; font-size: 18px; }
+#rotate .rot-hint { font-size: 14px; color: #bfae8c; letter-spacing: .05em; }
+#loading a { color: var(--gold); }

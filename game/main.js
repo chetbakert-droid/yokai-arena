@@ -5,6 +5,21 @@
 import * as pc from 'playcanvas';
 import { Scene, Character, Animation, Environment, OrbitControls } from '@viggle/splat-engine';
 
+// 載入失敗時把原因顯示在標題畫面（手機看不到主控台）；用新繪圖方式（WebGPU）失敗就自動改用相容模式（WebGL）重試一次
+let BOOTED = false;
+function showFatal(msg) {
+  if (BOOTED) return;
+  const el = document.getElementById('loading'); if (!el) return;
+  const gl = new URLSearchParams(location.search).get('gl') === '1';
+  el.style.color = '#ffb4a0';
+  el.innerHTML = `載入失敗：${String(msg || '未知錯誤').slice(0, 180)}<br>`
+    + (gl ? '<a href="" style="color:#e9b65a">重新整理</a>' : '正在改用相容模式重試…');
+  if (!gl) setTimeout(() => { const q = new URLSearchParams(location.search); q.set('gl', '1'); location.search = q; }, 1800);
+}
+addEventListener('error', e => showFatal(e.message || e.error));
+addEventListener('unhandledrejection', e => showFatal(e.reason && (e.reason.message || e.reason)));
+setTimeout(() => { if (!BOOTED) { const el = document.getElementById('loading'); if (el && !el.innerHTML.includes('失敗')) el.innerHTML += '<br><small>第一次要下載約 40MB，網路慢會等比較久。卡太久可以試 <a href="?gl=1" style="color:#e9b65a">相容模式</a></small>'; } }, 45000);
+
 const A = '../assets/';
 // 素材版本號：splat 引擎會把角色／場景／動作存進瀏覽器快取（最多 1 小時）。
 // 換了素材檔就把這個數字加 1，啟動時發現版本不同會清掉快取，玩家才會拿到新檔。
@@ -78,7 +93,10 @@ const QS = new URLSearchParams(location.search);
 
 // ---------------------------------------------------------------- 場景
 const canvas = $('c');
-const scene = await Scene.create(canvas, { fov: 36, depth: QS.get('depth') === '1', preserveDrawingBuffer: true, bgColor: { r: 0.02, g: 0.015, b: 0.04, a: 1 } });
+// 繪圖方式：手機預設用相容性最好的 WebGL（WebGPU 在 Android 上還不穩）；網址加 ?gl=1 強制 WebGL、?gpu=1 強制先試 WebGPU
+const TOUCH_DEVICE = matchMedia('(pointer: coarse)').matches;
+const BACKEND = QS.get('gl') === '1' ? 'webgl' : QS.get('gpu') === '1' ? undefined : TOUCH_DEVICE ? 'webgl' : undefined;
+const scene = await Scene.create(canvas, { fov: 36, depth: QS.get('depth') === '1', preserveDrawingBuffer: true, bgColor: { r: 0.02, g: 0.015, b: 0.04, a: 1 }, ...(BACKEND ? { backend: BACKEND } : {}) });
 scene.start();
 const app = scene.app;
 const cam = scene.cameraEntity;
@@ -1094,6 +1112,12 @@ for (const b of touchBtns) {
 }
 addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && !UI.sawTouch) { UI.sawTouch = true; applyTouch(); } }, true);
 applyTouch();
+// 手機關掉自動旋轉時：點按鈕進全螢幕並鎖成橫向（Android Chrome 支援；iPhone 只能請玩家自己轉）
+$('rotateBtn').addEventListener('click', () => {
+  const d = document.documentElement, p = d.requestFullscreen && d.requestFullscreen({ navigationUI: 'hide' });
+  const lock = () => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {});
+  if (p) p.then(lock).catch(lock); else lock();
+});
 function touchHud() {                                 // 奧義集滿時發光；特技、護身符、換將冷卻中變暗
   if (!document.body.classList.contains('touch')) return;
   const f = active(0);
@@ -1277,6 +1301,7 @@ G.state = 'title';
 $('loading').hidden = true;
 $('startHint').hidden = false;
 $('titleMenu').hidden = false;
+BOOTED = true;
 onStageLoaded = () => { if (G.state === 'select') renderSelect(); };   // 召喚陣上的「下載中」字樣拿掉
 for (const k of Object.keys(STAGES)) ensureStage(k);              // 其他擂台在背景下載
 updateCamera(0);
