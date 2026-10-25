@@ -12,6 +12,6 @@
 - 角色、場景、動作：以 PINOC（Viggle）生成的 3D Gaussian Splat
 - 引擎：PlayCanvas（MIT）＋ @viggle/splat-engine（MIT），授權文字見 `game/vendor/*/LICENSE`
 - 音效、配樂：ElevenLabs 生成
-- 配音：Microsoft Edge 線上語音（edge-tts）
+- 配音：ElevenLabs（虎姑婆的聲音以聲音設計生成）
 
 非商業的個人創作試作。
