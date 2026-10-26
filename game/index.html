@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#05040a">
 <title>妖怪拚台</title>
+<meta name="description" content="台灣妖怪 vs 日本式神！虎姑婆、魔神仔、林投姐對上九尾狐、天狗、雪女，打開網頁就能玩的 3 對 3 格鬥遊戲，支援手機。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="妖怪拚台">
+<meta property="og:title" content="妖怪拚台｜台灣妖怪 vs 日本式神">
+<meta property="og:description" content="虎姑婆、魔神仔、林投姐對上九尾狐、天狗、雪女！打開網頁就能玩的 3 對 3 格鬥遊戲，手機也能玩（請橫拿）。">
+<meta property="og:url" content="https://chetbakert-droid.github.io/yokai-arena/">
+<meta property="og:image" content="https://chetbakert-droid.github.io/yokai-arena/game/img/share.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_TW">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="style.css">
 <script type="importmap">
 { "imports": {
@@ -63,21 +74,22 @@
 <div id="touch">
   <button data-key="KeyA" class="t-left" aria-label="往左">◀</button>
   <button data-key="KeyD" class="t-right" aria-label="往右">▶</button>
-  <button data-key="KeyL" class="t-block">擋</button>
-  <button data-key="Digit1" class="t-tal" id="tbTal">符</button>
+  <button data-key="KeyS" class="t-block">擋</button>
+  <button data-key="KeyO" class="t-tal" id="tbTal">符</button>
   <button data-key="Tab" class="t-swap" id="tbSwap">換</button>
   <button data-key="KeyJ" class="t-light">爪</button>
   <button data-key="KeyK" class="t-heavy">重</button>
-  <button data-key="KeyO" class="t-kick">踢</button>
-  <button data-key="KeyI" class="t-jump">跳</button>
+  <button data-key="KeyL" class="t-kick">踢</button>
+  <button data-key="KeyW" class="t-jump">跳</button>
   <button data-key="Space" class="t-dodge">閃</button>
   <button data-key="KeyU" class="t-spec" id="tbSpec">特技</button>
-  <button data-key="KeyP" class="t-ult" id="tbUlt">奧義</button>
+  <button data-key="KeyI" class="t-ult" id="tbUlt">奧義</button>
 </div>
 <button id="pauseBtn" data-ui="pause" aria-label="暫停">❚❚</button>
 <div id="endMenu" class="menu-row end-menu" hidden>
   <button class="btn primary" data-ui="again">再拚一場 <kbd class="kb-only">R</kbd></button>
   <button class="btn" data-ui="select">回召喚陣 <kbd class="kb-only">Enter</kbd></button>
+  <button class="btn" data-ui="share">分享</button>
 </div>
 
 <section id="title">
@@ -91,12 +103,13 @@
       <button class="btn" data-ui="help">操作說明 <kbd class="kb-only">H</kbd></button>
       <button class="btn" data-ui="settings">設定</button>
       <button class="btn fs" data-ui="fullscreen">全螢幕</button>
+      <button class="btn" data-ui="share">分享</button>
     </div>
     <div class="keys kb-only">
-      <span><kbd>A</kbd><kbd>D</kbd> 前後移動</span>
-      <span><kbd>J</kbd> 爪擊　<kbd>K</kbd> 重擊　<kbd>O</kbd> 迴旋踢</span>
-      <span><kbd>L</kbd> 格擋（按住）　<kbd>空白</kbd> 翻滾閃避　<kbd>I</kbd> 跳</span>
-      <span><kbd>U</kbd> 特技　<kbd>P</kbd> 奧義（靈力滿）　<kbd>1</kbd> 護身符　<kbd>Tab</kbd> 換將</span>
+      <span><kbd>A</kbd><kbd>D</kbd> 前後移動　<kbd>W</kbd> 跳　<kbd>S</kbd> 格擋（按住）　<kbd>空白</kbd> 翻滾閃避　<kbd>Q</kbd> 換將</span>
+      <span><kbd>J</kbd> 爪擊　<kbd>K</kbd> 重擊　<kbd>L</kbd> 迴旋踢</span>
+      <span><kbd>U</kbd> 特技　<kbd>I</kbd> 奧義（靈力滿）　<kbd>O</kbd> 護身符</span>
+      <span>也可以用遊戲手把（Xbox／PS）</span>
       <span><kbd>M</kbd> 靜音　<kbd>Esc</kbd> 暫停　<kbd>R</kbd> 重來</span>
       <span class="dbg"><kbd>F2</kbd> 判定資訊　<kbd>T</kbd> 慢動作　<kbd>V</kbd> 自由鏡頭</span>
     </div>
@@ -163,25 +176,26 @@
           <li><b>護身符</b>：2 秒內不會受傷，用完要等 15 秒。</li>
           <li><b>換將</b>：換下一隻還活著的隊友上場，換完 3 秒內不能再換。</li>
           <li><b>連段</b>：連續打中傷害會遞減，第 5 下一定把對手擊倒。</li>
+          <li><b>按鍵緩衝</b>：上一招還沒收完就可以先按下一招，會自動接上。</li>
         </ul>
       </div>
       <div>
         <h3>按鍵</h3>
         <table>
-          <tr><th>動作</th><th>鍵盤</th><th>手機</th></tr>
-          <tr><td>移動</td><td><kbd>A</kbd><kbd>D</kbd></td><td>◀ ▶</td></tr>
-          <tr><td>爪擊（快）</td><td><kbd>J</kbd></td><td>爪</td></tr>
-          <tr><td>重擊（慢、會擊倒）</td><td><kbd>K</kbd></td><td>重</td></tr>
-          <tr><td>迴旋踢</td><td><kbd>O</kbd></td><td>踢</td></tr>
-          <tr><td>格擋（按住）</td><td><kbd>L</kbd></td><td>擋</td></tr>
-          <tr><td>翻滾閃避</td><td><kbd>空白</kbd></td><td>閃</td></tr>
-          <tr><td>跳</td><td><kbd>I</kbd></td><td>跳</td></tr>
-          <tr><td>特技（每隻不同）</td><td><kbd>U</kbd></td><td>特技</td></tr>
-          <tr><td>奧義（靈力滿）</td><td><kbd>P</kbd></td><td>奧義</td></tr>
-          <tr><td>護身符</td><td><kbd>1</kbd></td><td>符</td></tr>
-          <tr><td>換將</td><td><kbd>Tab</kbd></td><td>換</td></tr>
-          <tr><td>暫停</td><td><kbd>Esc</kbd></td><td>❚❚</td></tr>
-          <tr><td>靜音</td><td><kbd>M</kbd></td><td>設定裡</td></tr>
+          <tr><th>動作</th><th>鍵盤</th><th>手機</th><th>手把</th></tr>
+          <tr><td>移動</td><td><kbd>A</kbd><kbd>D</kbd> 或 ←→</td><td>◀ ▶</td><td>左搖桿／十字鍵</td></tr>
+          <tr><td>跳</td><td><kbd>W</kbd> 或 ↑</td><td>跳</td><td>上</td></tr>
+          <tr><td>格擋（按住）</td><td><kbd>S</kbd> 或 ↓</td><td>擋</td><td>下</td></tr>
+          <tr><td>爪擊（快）</td><td><kbd>J</kbd></td><td>爪</td><td>X</td></tr>
+          <tr><td>重擊（慢、會擊倒）</td><td><kbd>K</kbd></td><td>重</td><td>Y</td></tr>
+          <tr><td>迴旋踢</td><td><kbd>L</kbd></td><td>踢</td><td>B</td></tr>
+          <tr><td>翻滾閃避</td><td><kbd>空白</kbd></td><td>閃</td><td>A</td></tr>
+          <tr><td>特技（每隻不同）</td><td><kbd>U</kbd></td><td>特技</td><td>LB</td></tr>
+          <tr><td>奧義（靈力滿）</td><td><kbd>I</kbd></td><td>奧義</td><td>RB</td></tr>
+          <tr><td>護身符</td><td><kbd>O</kbd></td><td>符</td><td>LT</td></tr>
+          <tr><td>換將</td><td><kbd>Q</kbd></td><td>換</td><td>RT</td></tr>
+          <tr><td>暫停</td><td><kbd>Esc</kbd></td><td>❚❚</td><td>Start</td></tr>
+          <tr><td>靜音</td><td><kbd>M</kbd></td><td>設定裡</td><td>—</td></tr>
         </table>
       </div>
     </div>

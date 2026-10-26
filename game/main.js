@@ -430,7 +430,7 @@ function hud() {
     const m = clamp(f.meter, 0, 100);
     $('m' + t).style.transform = `scaleX(${m / 100})`;
     $('m' + t).parentElement.classList.toggle('full', m >= 100);
-    $('mLabel' + t).textContent = m >= 100 ? (t === 0 && !document.body.classList.contains('touch') ? '奧義可用（P）' : '奧義可用') : `靈力 ${Math.floor(m)}%`;
+    $('mLabel' + t).textContent = m >= 100 ? (t === 0 && !document.body.classList.contains('touch') ? '奧義可用（I）' : '奧義可用') : `靈力 ${Math.floor(m)}%`;
     $('talCd' + t).style.transform = `scaleY(${clamp(f.cd.tal / 15, 0, 1)})`;
     $('tal' + t).classList.toggle('cd', f.cd.tal > 0);
     team.members.forEach((mm, i) => { const el = $(`bench${t}_${i}`); if (el) { el.classList.toggle('dead', mm.dead); el.style.outline = i === team.cur ? '2px solid #fff6' : 'none'; } });
@@ -606,7 +606,7 @@ function tryAction(f, a) {
 function control(f, it, dt) {
   if (f.reversed > 0) it.move = -it.move;
   if (!free(f)) return;
-  if (it.act && tryAction(f, it.act)) return;
+  if (it.act && tryAction(f, it.act)) { if (it.human) INBUF.t = 0; return; }
   if (it.block) { if (f.st !== 'block') setState(f, 'block'); return; }
   if (f.st === 'block') setState(f, 'idle');
   if (it.move) {
@@ -884,7 +884,7 @@ function startGame() {
   }
   for (const c of Object.values(CH)) c.setActive(false);
   for (const s of G.shots) s.e.destroy();
-  G.diff = G.sel.diff; G.focus = null; G.punch = 0;
+  G.diff = G.sel.diff; G.focus = null; G.punch = 0; INBUF.t = 0;
   G.shots = []; G.log = []; G.seq = null; G.time = 99; G.timeScale = 1; G.slowmoT = 0; G.hitstop = 0; G.winner = null; G.fogT = 0; G.stormT = 0;
   useStage(G.sel.stage);
   $('dim').style.opacity = 0; $('fog').style.opacity = 0;
@@ -943,7 +943,7 @@ addEventListener('keydown', e => {
   audioInit();
   if (uiKey(e)) return;
   if (e.code === 'KeyM') { toggleMute(); return; }
-  if (['Tab', 'Space', 'F2'].includes(e.code)) e.preventDefault();
+  if (['Tab', 'Space', 'F2', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (!keys.has(e.code)) pressed.add(e.code);
   keys.add(e.code);
   if (G.state === 'select') {
@@ -972,10 +972,21 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
-function humanIntent() {
-  const it = { move: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), block: keys.has('KeyL'), act: null };
-  const map = [['KeyJ', 'light'], ['KeyK', 'heavy'], ['KeyO', 'kick'], ['KeyU', 'special'], ['KeyP', 'ult'], ['Space', 'dodge'], ['KeyI', 'jump'], ['Digit1', 'talisman'], ['Tab', 'swap']];
-  for (const [k, a] of map) if (pressed.has(k)) { it.act = a; break; }
+// 按鍵配置（2026-10-26 改成格鬥遊戲常見的配置）：左手 A D／方向鍵走、W 跳、S 按住格擋、空白鍵閃避、Q 換將；
+// 右手下排 J 爪擊、K 重擊、L 迴旋踢，上排 U 特技、I 奧義、O 護身符。舊鍵 P（奧義）、1（護身符）、Tab（換將）照樣能用。
+const ACT_KEYS = [['KeyJ', 'light'], ['KeyK', 'heavy'], ['KeyL', 'kick'], ['KeyU', 'special'], ['KeyI', 'ult'], ['KeyP', 'ult'],
+  ['KeyO', 'talisman'], ['Digit1', 'talisman'], ['Space', 'dodge'], ['KeyW', 'jump'], ['ArrowUp', 'jump'], ['KeyQ', 'swap'], ['Tab', 'swap']];
+const INBUF = { act: null, t: 0 };   // 按鍵緩衝：上一招還沒收完就按下一招，0.25 秒內一有空檔就自動出招，不會被吃掉
+// 每幀一開始就收進緩衝（在打擊停頓 hitstop 的判斷之前）；以前停頓那幾幀按的鍵會被直接丟掉，連招時常常「按了沒反應」
+function captureActs() {
+  if (G.state !== 'fight') return;
+  for (const [k, a] of ACT_KEYS) if (pressed.has(k)) { INBUF.act = a; INBUF.t = 0.25; break; }
+}
+function humanIntent(dt = 0) {
+  const right = keys.has('KeyD') || keys.has('ArrowRight'), left = keys.has('KeyA') || keys.has('ArrowLeft');
+  const it = { move: (right ? 1 : 0) - (left ? 1 : 0), block: keys.has('KeyS') || keys.has('ArrowDown'), act: null, human: true };
+  if (INBUF.t > 0) it.act = INBUF.act;
+  INBUF.t -= dt;
   return it;
 }
 // ---------------------------------------------------------------- 介面：設定、暫停、說明、觸控按鈕、新手提示
@@ -1058,6 +1069,7 @@ function uiAction(a) {
     case 'help': showPanel('help', G.paused ? 'pause' : null); break;
     case 'back': closePanel(); break;
     case 'fullscreen': toggleFullscreen(); break;
+    case 'share': shareGame(); break;
     case 'mute': toggleMute(); renderSettings(); break;
     case 'touchMode': S.touch = { auto: 'on', on: 'off', off: 'auto' }[S.touch]; saveSettings(); applyTouch(); renderSettings(); break;
     case 'resetTips': S.tips = {}; S.helpSeen = false; saveSettings(); callout('新手提示會重新出現', 1.0); break;
@@ -1118,6 +1130,41 @@ $('rotateBtn').addEventListener('click', () => {
   const lock = () => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {});
   if (p) p.then(lock).catch(lock); else lock();
 });
+// 遊戲手把（Xbox／PS／Switch Pro 等標準配置）：把手把按鈕換成鍵盤按鍵，跟鍵盤走同一套輸入
+//   對戰：X 爪擊、Y 重擊、B 迴旋踢、A 閃避、上 跳、下 格擋、LB 特技、RB 奧義、LT 護身符、RT 換將、Start 暫停
+//   選單：方向選擇、A 確定、B 返回、X 再拚一場、LB／RB 換擂台
+const PAD = { prev: {} };
+function padStep() {
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  const p = pads[0], want = {};
+  if (p) {
+    const b = i => !!(p.buttons[i] && p.buttons[i].pressed), ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+    want.ArrowLeft = b(14) || ax < -0.5; want.ArrowRight = b(15) || ax > 0.5;
+    want.ArrowUp = b(12) || ay < -0.6; want.ArrowDown = b(13) || ay > 0.6;
+    if (UI.open || ['title', 'select', 'end'].includes(G.state)) { want.Enter = b(0); want.Escape = b(1); want.KeyR = b(2); want.KeyQ = b(4); want.KeyE = b(5); }
+    else { want.KeyJ = b(2); want.KeyK = b(3); want.KeyL = b(1); want.Space = b(0); want.KeyU = b(4); want.KeyI = b(5); want.KeyO = b(6); want.KeyQ = b(7); }
+    want.Escape = want.Escape || b(9);
+  }
+  for (const code of new Set([...Object.keys(want), ...Object.keys(PAD.prev)])) {
+    const now = !!want[code], was = !!PAD.prev[code];
+    if (now !== was) window.dispatchEvent(new KeyboardEvent(now ? 'keydown' : 'keyup', { code }));
+  }
+  PAD.prev = want;
+}
+function pollPad() { padStep(); requestAnimationFrame(pollPad); }
+addEventListener('gamepadconnected', () => callout('手把已連接', 1.2));
+requestAnimationFrame(pollPad);
+window.__padStep = padStep;                         // 測試鉤：讀一次手把（背景分頁不跑 requestAnimationFrame 時用）
+
+// 分享：手機跳出系統分享選單（可以選 FB、LINE…）；電腦就把網址複製起來
+const SHARE_URL = 'https://chetbakert-droid.github.io/yokai-arena/';
+async function shareGame() {
+  const data = { title: '妖怪拚台', text: '台灣妖怪 vs 日本式神！虎姑婆、魔神仔、林投姐對上九尾狐、天狗、雪女，打開網頁就能玩的 3 對 3 格鬥遊戲。', url: SHARE_URL };
+  if (navigator.share && TOUCH_DEVICE) { try { await navigator.share(data); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(SHARE_URL); callout('網址已複製，可以貼到 FB', 1.6); }
+  catch { callout(SHARE_URL, 3); }
+}
+
 function touchHud() {                                 // 奧義集滿時發光；特技、護身符、換將冷卻中變暗
   if (!document.body.classList.contains('touch')) return;
   const f = active(0);
@@ -1137,12 +1184,12 @@ function tip(id, kb, touch, t = 4.5) {
 function checkTips() {
   if (G.state !== 'fight' || G.teams[0].ai) return;
   const f = active(0), team = G.teams[0], tal = SIDES[team.side].tal;
-  if (G.time < 97) tip('move', '<kbd>A</kbd><kbd>D</kbd> 移動，<kbd>J</kbd> 爪擊、<kbd>K</kbd> 重擊、<kbd>O</kbd> 迴旋踢，按住 <kbd>L</kbd> 格擋',
+  if (G.time < 97) tip('move', '<kbd>A</kbd><kbd>D</kbd> 移動、<kbd>W</kbd> 跳，<kbd>J</kbd> 爪擊、<kbd>K</kbd> 重擊、<kbd>L</kbd> 迴旋踢，按住 <kbd>S</kbd> 格擋',
     '左邊按鈕：移動、格擋。右邊按鈕：出招');
-  if (f.meter >= 100) tip('ult', '靈力滿了！按 <kbd>P</kbd> 放奧義', '靈力滿了！按發光的「奧義」放大招');
+  if (f.meter >= 100) tip('ult', '靈力滿了！按 <kbd>I</kbd> 放奧義', '靈力滿了！按發光的「奧義」放大招');
   if (f.st === 'block' && f.guard < 35) tip('guard', '護盾快破了！一直格擋會「破防」，暈 1.2 秒', '護盾快破了！一直格擋會「破防」，暈 1.2 秒');
-  if (f.hp < 35 && f.cd.tal <= 0) tip('tal', `危險！按 <kbd>1</kbd> 用${tal}，2 秒內不會受傷`, `危險！按「符」用${tal}，2 秒內不會受傷`);
-  if (f.hp < 55 && team.members.some((m, i) => i !== team.cur && !m.dead)) tip('swap', '打不過？按 <kbd>Tab</kbd> 換下一隻隊友上場', '打不過？按「換」換下一隻隊友上場');
+  if (f.hp < 35 && f.cd.tal <= 0) tip('tal', `危險！按 <kbd>O</kbd> 用${tal}，2 秒內不會受傷`, `危險！按「符」用${tal}，2 秒內不會受傷`);
+  if (f.hp < 55 && team.members.some((m, i) => i !== team.cur && !m.dead)) tip('swap', '打不過？按 <kbd>Q</kbd> 換下一隻隊友上場', '打不過？按「換」換下一隻隊友上場');
 }
 function uiStep(dt) {                                 // 每幀：同步畫面狀態給 CSS、勝負選單、提示計時
   if (document.body.dataset.state !== G.state) document.body.dataset.state = G.state;
@@ -1218,6 +1265,7 @@ function step(rawDt) {
   if (G.pause) { pressed.clear(); return; }          // 截圖用：整個世界（含特效）凍結
   const dt0 = Math.min(rawDt, 0.05);
   if (G.slowmoT > 0 && (G.slowmoT -= dt0) <= 0) G.timeScale = 1;
+  captureActs();
   overlays(dt0);
   updateFx(dt0);
   updateCamera(dt0);
@@ -1234,7 +1282,7 @@ function step(rawDt) {
     if (G.time <= 0) timeUp();
     for (const t of [0, 1]) {
       const f = active(t), dtF = dt * slowMul(f);
-      const it = G.teams[t].ai ? aiIntent(f, dtF) : humanIntent();
+      const it = G.teams[t].ai ? aiIntent(f, dtF) : humanIntent(dtF);
       control(f, it, dtF);
     }
   } else if (G.state === 'end') G.endT += dt;
